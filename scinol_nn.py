@@ -3,8 +3,7 @@ import typing
 import torch
 from torch.nn import ReLU, Module
 from collections import defaultdict
-from torch.nn.functional import relu
-from typing import Iterable, Callable
+from typing import Iterable
 
 
 
@@ -20,9 +19,10 @@ class ScinolModule(torch.nn.Module):
 
 class ScinolLinear(torch.nn.Linear):  # Scinol Linear
 
-    def __init__(self, in_features, out_features, **kwargs):
+    def __init__(self, in_features, out_features, single_layer: bool, **kwargs):
         super().__init__(in_features, out_features, **kwargs)
         self.optim_state = defaultdict(dict)
+        self.single_layer = single_layer
 
     def forward(self, curr_input):
         # update max input
@@ -49,13 +49,14 @@ class ScinolLinear(torch.nn.Linear):  # Scinol Linear
         state = self.optim_state[p]
         # calculate new weights
         denominator = torch.sqrt(state['S2'] + torch.square(state['M']))
-        non_zero_denom = torch.ne(denominator, torch.tensor(0.))
         theta = state['G']/denominator
         clipped_theta = torch.clamp(theta, min=-1, max=1)
         p_new = (clipped_theta / (2 * denominator)) * state['eta']
-        # new weight is equal to 0 if denominator is 0
-        p_new = torch.where(non_zero_denom, p_new, torch.tensor([0.]))
-
+        if not self.single_layer:
+            # weight is updated only if accumulated gradient is different from 0, to prevent disabling parts of net
+            non_zero_gradient_sum = torch.ne(state['G'], torch.tensor(0.))
+            # if G is zero weight is not updated
+            p_new = torch.where(non_zero_gradient_sum, p_new, p)
         # weights update
         with torch.no_grad():
             p.set_(p_new)
@@ -89,22 +90,23 @@ class ScinolLinear(torch.nn.Linear):  # Scinol Linear
 
 
 class ScinolMLP(ScinolModule):
-    def __init__(self, no_inputs: int, no_outputs: int, hidden_layer_sizes: Iterable, activation: Callable = relu):
+    def __init__(self, no_inputs: int, no_outputs: int, hidden_layer_sizes: Iterable, activation: Module = ReLU):
         super().__init__()
-        self.activation = activation
+        self.activation = (activation(),)  # to prevent from listing as module
+        single_layer = False
         prev_layer_size = -1
         for idx, layer_size in enumerate(hidden_layer_sizes):
             if idx == 0:
-                self.add_module('input_layer', ScinolLinear(no_inputs, layer_size))
+                self.add_module('input_layer', ScinolLinear(no_inputs, layer_size, single_layer))
             else:
-                self.add_module(f'{idx}_hidden_layer', ScinolLinear(prev_layer_size, layer_size))
+                self.add_module(f'{idx}_hidden_layer', ScinolLinear(prev_layer_size, layer_size, single_layer))
             prev_layer_size = layer_size
-        self.add_module('output_layer', ScinolLinear(prev_layer_size, no_outputs))
+        self.add_module('output_layer', ScinolLinear(prev_layer_size, no_outputs, single_layer))
 
     def forward(self, x):
         layers = list(self.children())
         for idx, layer in enumerate(layers):
             x = layer(x)
             if idx != len(layers)-1:
-                x = self.activation(x)
+                x = self.activation[0](x)
         return x

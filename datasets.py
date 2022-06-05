@@ -7,7 +7,7 @@ import torch.nn.functional
 from torch.utils.tensorboard import SummaryWriter
 from config import DATASET_DIR, WRITER_PREFIX
 from matplotlib import pyplot as plt
-from common_enums import DatasetEnum
+from config_enums import DatasetEnum
 
 
 class CustomDataset(Dataset):

@@ -23,7 +23,8 @@ def train(dataloader_: dataloader, model: Module, optimizer_: optimizer, writer:
             optim.zero_grad()
             loss_val.backward()
             optim.step()
-            step+=1
+            step += 1
+
 
 def train_scinol(dataloader_: dataloader, model: scinol_nn.ScinolMLP, writer: SummaryWriter,
                  loss: Callable, no_epochs: int = 100):
@@ -33,7 +34,12 @@ def train_scinol(dataloader_: dataloader, model: scinol_nn.ScinolMLP, writer: Su
             y_pred = model(x)
             loss_val = loss(y_pred,y)
             writer.add_scalar("loss", loss_val, step)
+            for name, param in model.named_parameters():
+                writer.add_histogram(name, param, step)
+                if param.grad is not None:
+                    writer.add_histogram(name+"_grad",param.grad,step)
+                    #print(name+"_grad",param.grad,step)
             model.zero_grad()
             loss_val.backward()
             model.step()
-            step+=1
+            step += 1
