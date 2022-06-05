@@ -1,7 +1,10 @@
-import torch
-from collections import defaultdict
-from torch.nn import functional
+import typing
 
+import torch
+from torch.nn import ReLU, Module
+from collections import defaultdict
+from torch.nn.functional import relu
+from typing import Iterable, Callable
 
 
 
@@ -86,14 +89,22 @@ class ScinolLinear(torch.nn.Linear):  # Scinol Linear
 
 
 class ScinolMLP(ScinolModule):
-    def __init__(self, no_inputs, no_outputs):
+    def __init__(self, no_inputs: int, no_outputs: int, hidden_layer_sizes: Iterable, activation: Callable = relu):
         super().__init__()
-        hiden=1
-        self.l1 = ScinolLinear(no_inputs, hiden)
-        self.l2 = ScinolLinear(hiden, no_outputs)
+        self.activation = activation
+        prev_layer_size = -1
+        for idx, layer_size in enumerate(hidden_layer_sizes):
+            if idx == 0:
+                self.add_module('input_layer', ScinolLinear(no_inputs, layer_size))
+            else:
+                self.add_module(f'{idx}_hidden_layer', ScinolLinear(prev_layer_size, layer_size))
+            prev_layer_size = layer_size
+        self.add_module('output_layer', ScinolLinear(prev_layer_size, no_outputs))
 
     def forward(self, x):
-        x = self.l1(x)
-        x = torch.nn.functional.relu(x)
-        x = self.l2(x)
+        layers = list(self.children())
+        for idx, layer in enumerate(layers):
+            x = layer(x)
+            if idx != len(layers)-1:
+                x = self.activation(x)
         return x
