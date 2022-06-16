@@ -38,7 +38,15 @@ def train_scinol(dataloader_: dataloader, model: scinol_nn.ScinolMLP, writer: Su
                 writer.add_histogram(name, param, step)
                 if param.grad is not None:
                     writer.add_histogram(name+"_grad",param.grad,step)
-                    #print(name+"_grad",param.grad,step)
+
+            for name, module in model.named_children():
+                for p_name, p in module.named_parameters():
+                    optim_state = module.optim_state[p]
+                    full_name=name+"."+p_name
+                    writer.add_histogram(full_name+"_G", optim_state['G'], step)
+                    writer.add_histogram(full_name+"_S2", optim_state['S2'], step)
+                    writer.add_histogram(full_name + "_eta", optim_state['eta'], step)
+                    writer.add_histogram(full_name+"_M", optim_state['M'], step)
             model.zero_grad()
             loss_val.backward()
             model.step()
