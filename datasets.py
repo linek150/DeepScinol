@@ -18,10 +18,14 @@ class CustomDataset(Dataset):
         self.no_classes = None
         self.data = None
         self.default_loss= None
+        if name == DatasetEnum.DUM_ABS:
+            x = torch.ones(1).view(-1, 1)
+            y = torch.ones_like(x)*10
+            self.data = self._get_formated_data(x,y)
         if name == DatasetEnum.ONED_REG:
             x = torch.arange(-5, 5, 0.1).view(-1, 1)
             y = (-5 * x + 0.1 * torch.randn(x.size()))
-            self.data = [(x[i], y[i]) for i in range(len(x))]
+            self.data = self._get_formated_data(x,y)
             #fig = plt.figure()
             #plt.scatter(y,x)
             #writer = SummaryWriter(WRITER_PREFIX + "\dataset")
@@ -32,7 +36,7 @@ class CustomDataset(Dataset):
             x, y = datasets.make_regression(n_features=n_dim, n_samples=100, random_state=0, noise=1)
             x = torch.tensor(x, dtype=torch.float, requires_grad=False)
             y = torch.tensor(y, dtype=torch.float, requires_grad=False).unsqueeze(1)
-            self.data = [(x[i], y[i]) for i in range(len(x))]
+            self.data = self._get_formated_data(x,y)
 
         if name == DatasetEnum.MNIST:
             # only vector as input
@@ -53,16 +57,20 @@ class CustomDataset(Dataset):
         if self.name in [DatasetEnum.MNIST]:
             self.input_size = self.data[0][0].shape[0]
             self.output_size = self.no_classes
-        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG]:
+        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG, DatasetEnum.DUM_ABS]:
             self.input_size = int(self.data[0][0].shape[0])
             self.output_size = int(self.data[0][1].shape[0])
-        assert self.input_size is not None
-        assert self.output_size is not None
+        else:
+            raise NotImplementedError(f"Specify how to define in_out_size for {self.name}.")
 
     def _set_loss(self):
         if self.name in [DatasetEnum.MNIST]:
             self.default_loss = torch.nn.CrossEntropyLoss(reduction='mean')
-        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG]:
+        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG, DatasetEnum.DUM_ABS]:
             self.default_loss = torch.nn.functional.mse_loss
-        assert self.default_loss is not None
+        else:
+            raise NotImplementedError(f"Specify default loss for {self.name}.")
+
+    def _get_formated_data(self, x, y):
+        return [(x[i], y[i]) for i in range(len(x))]
 

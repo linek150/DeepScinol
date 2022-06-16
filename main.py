@@ -17,7 +17,7 @@ dataloader_ = torch.utils.data.DataLoader(dataset_, batch_size=bs)
 
 no_inputs = dataset_.input_size
 no_outputs = dataset_.output_size
-loss = dataset_.default_loss if LOSS == LossEnum.DEFAULT else LOSS.value
+loss = dataset_.default_loss if LOSS == LossEnum.DEFAULT else LOSS
 
 if SCINOL_ONLY:
     optimizers = []  # [Scinol2Dl]
