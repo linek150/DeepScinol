@@ -1,49 +1,42 @@
 import copy
-
 from torch.utils.tensorboard import SummaryWriter
-from torch.nn.functional import mse_loss
-
-import scinol_nn
-from scinol_nn import ScinolLinear
 from torch.utils.data import dataloader
-from torch.nn import Module
-from torch.optim import optimizer
 from datasets import CustomDataset
-import torch
-from test_alg import train, train_scinol
+from test_alg import train
 from scinol import Scinol2Dl
-from common_enums import DatasetEnum
-from tqdm import tqdm
-# device = 'cpu'  # 'cuda' if torch.cuda.is_available() else 'cpu'
 from config import *
+from models import get_model, get_scinol_model
+from config_enums import LossEnum
+from torch.optim import SGD, Adam
+import torch
+from deep_scinol_adapter import adapt_to_scinol
 
+if DETERMINISTIC_RES:
+    torch.manual_seed(0)
 
 dataset_ = CustomDataset(DATASET_NAME, n_dim=N_DIM)
 bs=BATCH_SIZE if BATCH_SIZE is not None else len(dataset_)
 dataloader_ = torch.utils.data.DataLoader(dataset_, batch_size=bs)
-if LOSS is None:
-    loss = dataset_.default_loss
-else:
-    loss = LOSS
+
+no_inputs = dataset_.input_size
+no_outputs = dataset_.output_size
+loss = dataset_.default_loss if LOSS == LossEnum.DEFAULT else LOSS
 
 if SCINOL_ONLY:
-    optimizers = []#[Scinol2Dl]
+    optimizers = []  # [Scinol2Dl]
 else:
-    optimizers = [torch.optim.Adam, torch.optim.SGD, Scinol2Dl]
+    optimizers = [Adam, SGD, Scinol2Dl]
 
 for run_no in range(NO_RUNS):
-    model = torch.nn.Sequential(torch.nn.Linear(dataset_.input_size, 100),
-                                 torch.nn.ReLU(),
-                                 torch.nn.Linear(100,dataset_.output_size))
+    model = get_model(MODEL_TYPE, no_inputs, no_outputs, HIDDEN_LAYERS, ACTIVATION.value)
     for optimizer in optimizers:
-        clean_model = copy.deepcopy(model)
+        clean_model = copy.deepcopy(model).to(DEVICE)
         writer = SummaryWriter(log_dir=f'{WRITER_PREFIX}{optimizer.__name__+str(run_no)}')
-
-        train(dataloader_, clean_model, optimizer, writer, no_epochs=NO_EPOCHS, loss=loss)
-
-    model = scinol_nn.ScinolMLP(dataset_.input_size, dataset_.output_size)
-    writer = SummaryWriter(log_dir=f'{WRITER_PREFIX}Scinol{str(run_no)}')
-
-    train_scinol(dataloader_, model, writer, no_epochs=NO_EPOCHS, loss=loss)
-
+        train(dataloader_, clean_model, writer, optim=optimizer, no_epochs=NO_EPOCHS, log_grads=LOG_GRADS_AND_WEIGHTS, loss=loss)
+    clean_model = copy.deepcopy(model).to(DEVICE)
+    #scinol_model = get_scinol_model(MODEL_TYPE, no_inputs, no_outputs, HIDDEN_LAYERS, ACTIVATION.value, ETA_INIT).to(DEVICE)
+    scinol_model = adapt_to_scinol(clean_model)
+    writer = SummaryWriter(log_dir=f'{WRITER_PREFIX}{SCINOL_PREFIX}Scinol{str(run_no)}')
+    train(dataloader_, scinol_model, writer, no_epochs=NO_EPOCHS, loss=loss, log_grads=LOG_GRADS_AND_WEIGHTS,
+          log_scinol_params_=LOG_SCINOL_PARAMS)
     writer.flush()
