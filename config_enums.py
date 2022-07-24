@@ -10,11 +10,12 @@ class DatasetEnum(Enum):
     DUM_ABS = 'abs'
 
 
+
 class ModelEnum(Enum):
     LINEAR = 'linear'
     MLP = 'mlp'
     MNIST_CNN = 'mnist_cnn'
-
+    RESNET18_MNIST = 'reset18_mnist'
 
 class LossEnum(Enum):
     DEFAULT = 'dataset_default'

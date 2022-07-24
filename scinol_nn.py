@@ -5,7 +5,7 @@ import torch.nn
 from torch.nn import ReLU, Module
 from collections import defaultdict
 from typing import Iterable
-from config_enums import EtaInitEnum, MaxInitEnum
+from config_enums import EtaInitEnum
 
 class ScinolModule(torch.nn.Module):
 

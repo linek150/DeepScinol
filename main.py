@@ -9,7 +9,7 @@ from models import get_model, get_scinol_model
 from config_enums import LossEnum
 from torch.optim import SGD, Adam
 import torch
-from deep_scinol_adapter import adapt_to_scinol
+from deep_scinol_adapter.deep_scinol_adapter import adapt_to_scinol
 
 if DETERMINISTIC_RES:
     torch.manual_seed(0)
