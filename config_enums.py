@@ -1,10 +1,11 @@
 from enum import Enum
-from torch.nn.functional import mse_loss, cross_entropy, l1_loss
-from torch.nn import ReLU
+from torch.nn import CrossEntropyLoss, MSELoss, L1Loss
+from torch.nn import ReLU, Sigmoid, Tanh
 
 class DatasetEnum(Enum):
     ONED_REG = '1dReg'
     ND_REG = 'ndReg'
+    FLATTEN_MNIST = 'flatten_mnist'
     MNIST = 'mnist'
     DUM_ABS = 'abs'
 
@@ -12,14 +13,22 @@ class DatasetEnum(Enum):
 class ModelEnum(Enum):
     LINEAR = 'linear'
     MLP = 'mlp'
+    MNIST_CNN = 'mnist_cnn'
 
 
 class LossEnum(Enum):
     DEFAULT = 'dataset_default'
-    MSE = mse_loss
-    CE = cross_entropy
-    MAE = l1_loss
+    MSE = MSELoss(reduction='mean')
+    CE = CrossEntropyLoss(reduction='mean')
+    MAE = L1Loss(reduction='mean')
 
 
 class ActivationEnum(Enum):
     RELU = ReLU
+    SIGMOID = Sigmoid
+    TANH = Tanh
+
+
+class EtaInitEnum(Enum):
+    UNIFORM_GLOROT = 'glorot'
+    ONES = 'ones'
