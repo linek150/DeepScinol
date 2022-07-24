@@ -7,7 +7,8 @@ import torch.nn.functional
 from torch.utils.tensorboard import SummaryWriter
 from config import DATASET_DIR, WRITER_PREFIX
 from matplotlib import pyplot as plt
-from config_enums import DatasetEnum
+from config_enums import DatasetEnum, LossEnum
+from typing import Tuple
 
 
 class CustomDataset(Dataset):
@@ -20,7 +21,7 @@ class CustomDataset(Dataset):
         self.default_loss= None
         if name == DatasetEnum.DUM_ABS:
             x = torch.ones(1).view(-1, 1)
-            y = torch.ones_like(x)*10
+            y = torch.ones_like(x)*(-10)
             self.data = self._get_formated_data(x,y)
         if name == DatasetEnum.ONED_REG:
             x = torch.arange(-5, 5, 0.1).view(-1, 1)
@@ -38,10 +39,15 @@ class CustomDataset(Dataset):
             y = torch.tensor(y, dtype=torch.float, requires_grad=False).unsqueeze(1)
             self.data = self._get_formated_data(x,y)
 
-        if name == DatasetEnum.MNIST:
+        if name == DatasetEnum.FLATTEN_MNIST:
             # only vector as input
             transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torch.flatten])
             self.data = torchvision.datasets.MNIST(DATASET_DIR, download=True, transform=transform)
+            self.no_classes = len(self.data.classes)
+
+        if name == DatasetEnum.MNIST:
+            self.data = torchvision.datasets.MNIST(DATASET_DIR, download=True,
+                                                   transform=torchvision.transforms.ToTensor())
             self.no_classes = len(self.data.classes)
 
         self._set_in_out_size()
@@ -50,24 +56,29 @@ class CustomDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         return self.data[idx]
 
     def _set_in_out_size(self):
-        if self.name in [DatasetEnum.MNIST]:
+        if self.name in [DatasetEnum.FLATTEN_MNIST]:
             self.input_size = self.data[0][0].shape[0]
             self.output_size = self.no_classes
-        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG, DatasetEnum.DUM_ABS]:
+        elif self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG, DatasetEnum.DUM_ABS]:
             self.input_size = int(self.data[0][0].shape[0])
             self.output_size = int(self.data[0][1].shape[0])
+        elif self.name in [DatasetEnum.MNIST]:
+            self.input_size = None
+            self.output_size = None
         else:
             raise NotImplementedError(f"Specify how to define in_out_size for {self.name}.")
 
     def _set_loss(self):
-        if self.name in [DatasetEnum.MNIST]:
+        if self.name in [DatasetEnum.FLATTEN_MNIST, DatasetEnum.MNIST]:
             self.default_loss = torch.nn.CrossEntropyLoss(reduction='mean')
-        if self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG, DatasetEnum.DUM_ABS]:
-            self.default_loss = torch.nn.functional.mse_loss
+        elif self.name in [DatasetEnum.ND_REG, DatasetEnum.ONED_REG]:
+            self.default_loss = torch.nn.MSELoss(reduction='mean')
+        elif self.name in [DatasetEnum.DUM_ABS]:
+            self.default_loss = LossEnum.MAE
         else:
             raise NotImplementedError(f"Specify default loss for {self.name}.")
 
