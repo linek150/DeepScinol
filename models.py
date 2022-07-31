@@ -18,6 +18,10 @@ def get_model(model_enum: ModelEnum, no_inputs: int, no_outputs: int,
         return _mnist_cnn(activation)
     if model_enum == ModelEnum.RESNET18_MNIST:
         return _resnet18_mnist()
+    if model_enum == ModelEnum.RESNET34_CIFAR10:
+        return _resnet34_cifar10()
+    if model_enum == ModelEnum.RESNET18_CIFAR10:
+        return _resnet18_cifar10()
 
 
 def get_scinol_model(model_enum: ModelEnum, no_inputs: int, no_outputs: int,
@@ -60,7 +64,21 @@ def _mnist_cnn(activation: Module):
 
 def _resnet18_mnist():
     model = torchvision.models.resnet.resnet18()
-    model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7,stride=2, padding=(3,3), bias=False)
+    model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=(3,3), bias=False)
+    num_ftrs = model.fc.in_features
+    model.fc = Linear(num_ftrs, 10)
+    return model
+
+
+def _resnet34_cifar10():
+    model = torchvision.models.resnet.resnet34()
+    num_ftrs = model.fc.in_features
+    model.fc = Linear(num_ftrs, 10)
+    return model
+
+
+def _resnet18_cifar10():
+    model = torchvision.models.resnet.resnet18()
     num_ftrs = model.fc.in_features
     model.fc = Linear(num_ftrs, 10)
     return model

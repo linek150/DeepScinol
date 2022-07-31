@@ -13,8 +13,8 @@ from tqdm import tqdm
 
 def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
           loss: Callable, optim: optimizer = None, no_epochs: int = 100,
-          log_grads: bool = False, log_scinol_params_: bool = False):
-
+          log_grads: bool = False, log_scinol_params_: bool = False,
+          val_dataloader: dataloader = None):
     use_optim= True if optim is not None else False
     opt_name=optim.__name__ if use_optim else "Scinol"
     device = 'cuda' if next(model.parameters()).is_cuda else 'cpu'
@@ -29,16 +29,8 @@ def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
             loss_val = loss(y_pred, y)
             writer.add_scalar("loss", loss_val, step)
             if log_grads:
-                for name, param in model.named_parameters():
-                    writer.add_histogram(name, param, step)
-                    if param.grad is not None:
-                        writer.add_histogram(name+"_grad", param.grad, step)
-                        writer.add_scalar(name+"_no_non_zero_gradients",
-                                          torch.count_nonzero(torch.torch.ne(param.grad, torch.tensor(0.))), step)
-                        writer.add_scalar(name+"_no_non_zero_weights",
-                                          torch.count_nonzero(torch.torch.ne(param, torch.tensor(0.))), step)
-                        writer.add_scalar(name+"_no_weights_grater_then_0",
-                                          torch.count_nonzero(torch.torch.gt(param.grad, torch.tensor(0.))), step)
+                __log_grads(writer, model, step)
+
             if use_optim:
                 optim.zero_grad()
                 loss_val.backward()
@@ -47,7 +39,27 @@ def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
                 model.zero_grad()
                 loss_val.backward()
                 model.step()
+            # test accuracy
+            with torch.no_grad():
+                labels = torch.argmax(y_pred, 1)
+                train_error = (labels == y).sum() / x.shape[0]
+            writer.add_scalar("top 1 test accuracy", train_error, step)
+
             step += 1
+            # validation accuracy
+        if val_dataloader is not None:
+            with torch.no_grad():
+                no_correct = 0
+                no_all = 0
+                for x, y in val_dataloader:
+                    x = x.to(device)
+                    y = y.to(device)
+                    y_pred = model(x)
+                    labels = torch.argmax(y_pred, 1)
+                    no_correct += (labels == y).sum()
+                    no_all += x.shape[0]
+                val_acc = no_correct / no_all
+            writer.add_scalar("top 1 val accuracy", val_acc, epoch)
 
 
 def log_scinol_params(model, writer, step):
@@ -59,3 +71,16 @@ def log_scinol_params(model, writer, step):
             writer.add_histogram(full_name+"_S2", optim_state['S2'], step)
             writer.add_histogram(full_name + "_eta", optim_state['eta'], step)
             writer.add_histogram(full_name+"_M", optim_state['M'], step)
+
+
+def __log_grads(writer, model, step):
+    for name, param in model.named_parameters():
+        writer.add_histogram(name, param, step)
+        if param.grad is not None:
+            writer.add_histogram(name + "_grad", param.grad, step)
+            writer.add_scalar(name + "_no_non_zero_gradients",
+                              torch.count_nonzero(torch.torch.ne(param.grad, torch.tensor(0.))), step)
+            writer.add_scalar(name + "_no_non_zero_weights",
+                              torch.count_nonzero(torch.torch.ne(param, torch.tensor(0.))), step)
+            writer.add_scalar(name + "_no_weights_grater_then_0",
+                              torch.count_nonzero(torch.torch.gt(param.grad, torch.tensor(0.))), step)
