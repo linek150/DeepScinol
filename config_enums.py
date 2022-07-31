@@ -8,13 +8,16 @@ class DatasetEnum(Enum):
     FLATTEN_MNIST = 'flatten_mnist'
     MNIST = 'mnist'
     DUM_ABS = 'abs'
+    CIFAR10 = 'cifar10'
 
 
 class ModelEnum(Enum):
     LINEAR = 'linear'
     MLP = 'mlp'
     MNIST_CNN = 'mnist_cnn'
-
+    RESNET18_MNIST = 'resnet18_mnist'
+    RESNET18_CIFAR10 = 'resnet18_cifar10'
+    RESNET34_CIFAR10 = 'resnet34_cifar10'
 
 class LossEnum(Enum):
     DEFAULT = 'dataset_default'

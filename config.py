@@ -1,22 +1,23 @@
 import torch.cuda
 
-from config_enums import DatasetEnum, ModelEnum, LossEnum, ActivationEnum, EtaInitEnum, MaxInitEnum
+from config_enums import DatasetEnum, ModelEnum, LossEnum, ActivationEnum, EtaInitEnum
 from typing import Tuple
 # to define
 #reproducibility
 DETERMINISTIC_RES: bool = True
 # dataset options
-DATASET_NAME: DatasetEnum = DatasetEnum.FLATTEN_MNIST
+DATASET_NAME: DatasetEnum = DatasetEnum.MNIST
 N_DIM: int = 100  # number of feature dimensions for generating ND_REG-ression
 DATASET_DIR: str = "./datasets"  # place where datasets will be downloaded
 # run options
-NO_RUNS: int = 3
-NO_EPOCHS: int = 4 # number of iterations over all dataset
-BATCH_SIZE = 100 # None = whole dataset or int
-SCINOL_ONLY: bool = True
+NO_RUNS: int = 1
+NO_EPOCHS: int = 18# number of iterations over all dataset
+BATCH_SIZE = 128 # None = whole dataset or int
+SCINOL_ONLY: bool = False
+VALIDATION: bool = True
 # model params
-MODEL_TYPE: ModelEnum = ModelEnum.MLP
-HIDDEN_LAYERS: Tuple = (100,100,100,101)  # number of neurons in layers in MLP
+MODEL_TYPE: ModelEnum = ModelEnum.MNIST_CNN
+HIDDEN_LAYERS: Tuple = (100,100,100)  # number of neurons in layers in MLP
 ACTIVATION: ActivationEnum = ActivationEnum.RELU  # activation after every layer, ignored if MODEL == ModelEnum.LINEAR
 # loss definition
 LOSS: LossEnum = LossEnum.DEFAULT  # loss function, None default dataset loss
