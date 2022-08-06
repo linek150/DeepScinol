@@ -7,6 +7,9 @@ def adapt_to_scinol(module):
       Find all modules without submodules. Add max_buffer, forward_pre_hook,
       and fit method.
     """
+    # TODO: find better way to add step method to modules
+    if not hasattr(module, 'step'):
+        torch.nn.Module.step = step
     # TODO: consider situation when module that has submodules also has parameters
     # module has no submodules, end of recursion, adapt this module
     if sum(1 for _ in module.children()) == 0:
@@ -14,14 +17,12 @@ def adapt_to_scinol(module):
         if not has_scinol_hook(module) and sum(1 for _ in module.parameters()) > 0:
             add_scinol_buffers(module)
             module.register_forward_pre_hook(scinol_pre_hook)
-        return
+        return module
     else:  # module has submodules
         # check children modules
         for child_module in module.children():
             adapt_to_scinol(child_module)
-    # TODO: find better way to add step method to modules
-    if not hasattr(module, 'step'):
-        torch.nn.Module.step = step
+
     return module
 
 
@@ -102,7 +103,8 @@ def step(self):
             # state update
             state[G].add_(-p.grad)
             state[S2].add_(p.grad ** 2)
-            new_eta = torch.maximum(state[ETA]-(p.grad*p), state[ETA]*0.5)
+            delta_p = p-state[P0]
+            new_eta = torch.maximum(state[ETA]-(p.grad*delta_p), state[ETA]*0.5)
             state[ETA].set_(new_eta)
         return
     for child in self.children():
