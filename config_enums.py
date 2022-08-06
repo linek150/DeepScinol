@@ -9,6 +9,8 @@ class DatasetEnum(Enum):
     MNIST = 'mnist'
     DUM_ABS = 'abs'
     CIFAR10 = 'cifar10'
+    ADULT = 'adult'
+    COVER_TYPE = 'cover_type'
 
 
 class ModelEnum(Enum):
