@@ -14,12 +14,12 @@ from tqdm import tqdm
 def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
           loss: Callable, log_to_pickle, optim: optimizer = None, no_epochs: int = 100,
           log_grads: bool = False, log_scinol_params_: bool = False,
-          val_dataloader: dataloader = None, lr=0.01):
+          val_dataloader: dataloader = None, lr=None):
     use_optim= True if optim is not None else False
-    opt_name=optim.__name__ if use_optim else "Scinol"
+    opt_name = optim.name if use_optim else "Scinol"
     device = 'cuda' if next(model.parameters()).is_cuda else 'cpu'
     step = 0
-    optim = optim(model.parameters(), lr=lr) if use_optim else None
+    optim = optim.value(model.parameters(), lr=lr) if use_optim else None
     train_loss = []
     train_acc = []
     validation_loss = []

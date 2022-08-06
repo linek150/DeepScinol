@@ -1,6 +1,11 @@
 from enum import Enum
+
+import torch.optim.adam
 from torch.nn import CrossEntropyLoss, MSELoss, L1Loss
 from torch.nn import ReLU, Sigmoid, Tanh
+
+import cocob_bp
+
 
 class DatasetEnum(Enum):
     ONED_REG = '1dReg'
@@ -37,3 +42,9 @@ class ActivationEnum(Enum):
 class EtaInitEnum(Enum):
     UNIFORM_GLOROT = 'glorot'
     ONES = 'ones'
+
+
+class OptimizerEnum(Enum):
+    ADAM = torch.optim.Adam
+    SGD = torch.optim.SGD
+    COCOB = cocob_bp.COCOB_Backprop
