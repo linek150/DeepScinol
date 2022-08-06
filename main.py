@@ -16,11 +16,11 @@ from deep_scinol_adapter.deep_scinol_adapter import adapt_to_scinol
 def run_training(starting_model: torch.nn.Module, optimizer: OptimizerEnum, run_no:int, dataloader, loss,
                  valid_dataloader, lr):
     clean_model = copy.deepcopy(starting_model).to(DEVICE)
+    global writer
     writer = SummaryWriter(log_dir=f'{WRITER_PREFIX}{optimizer.name}/{lr}/{str(run_no)}')
     train(dataloader, clean_model, writer, optim=optimizer, no_epochs=NO_EPOCHS,
           log_grads=LOG_GRADS_AND_WEIGHTS,
           loss=loss, val_dataloader=valid_dataloader, lr=lr, log_to_pickle=LOSS_TO_PICKLE)
-
 
 
 OPTIMIZERS_REQUIRE_LR = (OptimizerEnum.ADAM, OptimizerEnum.SGD)
