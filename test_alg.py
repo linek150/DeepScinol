@@ -12,22 +12,25 @@ from tqdm import tqdm
 
 
 def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
-          loss: Callable, optim: optimizer = None, no_epochs: int = 100,
+          loss: Callable, log_to_pickle, optim: optimizer = None, no_epochs: int = 100,
           log_grads: bool = False, log_scinol_params_: bool = False,
-          val_dataloader: dataloader = None):
+          val_dataloader: dataloader = None, lr=None):
     use_optim= True if optim is not None else False
-    opt_name=optim.__name__ if use_optim else "Scinol"
+    opt_name = optim.name if use_optim else "Scinol"
     device = 'cuda' if next(model.parameters()).is_cuda else 'cpu'
     step = 0
-    optim = optim(model.parameters(), lr=0.01) if use_optim else None
+    optim = optim.value(model.parameters(), lr=lr) if use_optim else None
+    train_loss = []
+    train_acc = []
+    validation_loss = []
     for epoch in tqdm(range(no_epochs), desc=f'{opt_name}-Epoch'):
         for x, y in dataloader_:
             x = x.to(device)
             y = y.to(device)
             y_pred = model(x)
-            if not use_optim and log_scinol_params_: log_scinol_params(model, writer, step)
             loss_val = loss(y_pred, y)
             writer.add_scalar("loss", loss_val, step)
+            train_loss.append((step, float(loss_val)))
             if log_grads:
                 __log_grads(writer, model, step)
 
@@ -42,24 +45,47 @@ def train(dataloader_: dataloader, model: Module, writer: SummaryWriter,
             # test accuracy
             with torch.no_grad():
                 labels = torch.argmax(y_pred, 1)
-                train_error = (labels == y).sum() / x.shape[0]
-            writer.add_scalar("top 1 test accuracy", train_error, step)
+                train_accuracy = (labels == y).sum() / x.shape[0]
+            writer.add_scalar("top 1 test accuracy", train_accuracy, step)
+            train_acc.append((step,float(train_accuracy)))
+
 
             step += 1
             # validation accuracy
         if val_dataloader is not None:
+
             with torch.no_grad():
                 no_correct = 0
                 no_all = 0
+                no_batches=0
+                sum_validation_loss=0
                 for x, y in val_dataloader:
                     x = x.to(device)
                     y = y.to(device)
                     y_pred = model(x)
+                    validation_batch_loss = loss(y_pred, y)
                     labels = torch.argmax(y_pred, 1)
                     no_correct += (labels == y).sum()
-                    no_all += x.shape[0]
+                    no_all += y.shape[0]
+                    no_batches += 1
+                    sum_validation_loss+=validation_batch_loss
                 val_acc = no_correct / no_all
+                mean_validation_loss = sum_validation_loss/no_batches
             writer.add_scalar("top 1 val accuracy", val_acc, epoch)
+            writer.add_scalar("val_loss",mean_validation_loss, epoch)
+            validation_loss.append((step, float(mean_validation_loss)))
+    if log_to_pickle:
+        import pickle
+        import os
+        path = "./pickles/"+writer.log_dir+"/"
+        os.makedirs(path)
+        with open(path+"train_loss", "wb+") as train_loss_file:
+            pickle.dump(train_loss, train_loss_file)
+        with open(path+"train_acc", "wb+") as train_acc_file:
+            pickle.dump(train_acc, train_acc_file)
+        with open(path+"val_loss", "wb+") as val_loss_file:
+            pickle.dump(validation_loss, val_loss_file)
+
 
 
 def log_scinol_params(model, writer, step):

@@ -3,3 +3,5 @@ torch
 tqdm
 matplotlib
 torchvision
+pandas
+requests
