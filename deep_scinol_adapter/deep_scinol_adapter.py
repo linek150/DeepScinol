@@ -1,29 +1,36 @@
 import torch
 from deep_scinol_adapter.m_updates import m_update_dict
+from deep_scinol_adapter.eta_init import eta_init_dict
 from .common import *
 
-def adapt_to_scinol(module):
+def adapt_to_scinol(module, eta_init_value, momentum:bool):
     """
       Find all modules without submodules. Add max_buffer, forward_pre_hook,
       and fit method.
     """
     # TODO: find better way to add step method to modules
     if not hasattr(module, 'step'):
-        torch.nn.Module.step = step
+        step_method = get_scinol_step(momentum)
+        torch.nn.Module.step = step_method
     # TODO: consider situation when module that has submodules also has parameters
     # module has no submodules, end of recursion, adapt this module
     if sum(1 for _ in module.children()) == 0:
         # module doesn't have hook yet and has parameters to optimize
         if not has_scinol_hook(module) and sum(1 for _ in module.parameters()) > 0:
-            add_scinol_buffers(module)
+            add_scinol_buffers(module, eta_init_value)
             module.register_forward_pre_hook(scinol_pre_hook)
         return module
     else:  # module has submodules
         # check children modules
         for child_module in module.children():
-            adapt_to_scinol(child_module)
+            adapt_to_scinol(child_module, eta_init_value, momentum)
 
     return module
+
+def get_scinol_step(momentum:bool):
+    def _scinol_step(self):
+        step(self,momentum)
+    return _scinol_step
 
 
 @torch.no_grad()
@@ -63,7 +70,8 @@ def has_scinol_hook(module):
     return False
 
 
-def add_scinol_buffers(module):
+def add_scinol_buffers(module, eta_init_value):
+    module.register_buffer(T, torch.tensor(1))
     for p_name, p in module.named_parameters():
         add_max_buffer(module, p_name, p)
 
@@ -72,8 +80,13 @@ def add_scinol_buffers(module):
 
         g=torch.zeros_like(p)
         module.register_buffer(p_name + G, g)
-
-        eta=torch.ones_like(p)
+        #ETA INIT
+        if str(eta_init_value) == "glorot":
+            eta=get_eta_init(module, p, p_name)
+        elif isinstance(eta_init_value, float) or isinstance(eta_init_value, int):
+            eta=torch.full_like(p, eta_init_value)
+        else:
+            raise NotImplementedError("Pass float or int or 'glorot' as eta_init_method param.")
         module.register_buffer(p_name + ETA, eta)
 
         p0=p.detach().clone()
@@ -91,22 +104,39 @@ def add_max_buffer(module,p_name,p):
     else:
         raise NotImplementedError("Not supported param type")
 
-
-
-
+B1=0.9
+B1_complement=1-B1
+B2=0.999
+B2_complement=1-B2
 @torch.no_grad()
-def step(self):
-    if sum(1 for _ in self.children()) == 0:
+def step(self, momentum):
+    if sum(1 for _ in self.children()) == 0 and sum(1 for _ in self.parameters()) != 0:
         # update cumulative gradients, cumulative variance and learning rate
+        state=None
         for p_name, p in self.named_parameters():
             state = get_param_state(self, p_name)
             # state update
-            state[G].add_(-p.grad)
-            state[S2].add_(p.grad ** 2)
+            if momentum:
+                first_moment=B1*state[G]+B1_complement*(-p.grad)
+                corrected_first_moment=first_moment/(1-B1**state[T])
+                second_moment=B2*state[S2]+B2_complement*(torch.square(p.grad))
+                corrected_second_moment=second_moment/(1-B2**state[T])
+                state[G].set_(corrected_first_moment)
+                state[S2].set_(corrected_second_moment)
+            else:
+                state[G].add_(-p.grad)
+                state[S2].add_(p.grad ** 2)
             delta_p = p-state[P0]
             new_eta = torch.maximum(state[ETA]-(p.grad*delta_p), state[ETA]*0.5)
             state[ETA].set_(new_eta)
+        state[T].add_(torch.tensor(1))
         return
     for child in self.children():
         # TODO napisa lepszy warunek na test sytuacji że moduł ma parametry i submoduly
         child.step()
+
+
+
+def get_eta_init(module, param, param_name):
+    eta_init_fun = eta_init_dict[type(module)]
+    return eta_init_fun(module, param)

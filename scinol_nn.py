@@ -83,7 +83,7 @@ class ScinolLinear(torch.nn.Linear):  # Scinol Linear
                 state['M'] = torch.zeros_like(p, memory_format=torch.preserve_format, requires_grad=False)
             state['S2'] = torch.zeros_like(p, memory_format=torch.preserve_format, requires_grad=False)
             state['G'] = torch.zeros_like(p, memory_format=torch.preserve_format, requires_grad=False)
-            if self.eta_init == EtaInitEnum.UNIFORM_GLOROT:
+            if self.eta_init == EtaInitEnum.GLOROT:
                 state['eta'] = torch.zeros_like(p, memory_format=torch.preserve_format, requires_grad=False)
                 torch.nn.init.constant_(state['eta'], self.eta_init_bound)
             if self.eta_init == EtaInitEnum.ONES:
@@ -111,7 +111,7 @@ class ScinolLinear(torch.nn.Linear):  # Scinol Linear
 
 class ScinolMLP(ScinolModule):
     def __init__(self, no_inputs: int, no_outputs: int, hidden_layer_sizes: Iterable, activation: Module = ReLU,
-                 eta_init: EtaInitEnum = EtaInitEnum.UNIFORM_GLOROT):
+                 eta_init: EtaInitEnum = EtaInitEnum.GLOROT):
         super().__init__()
         self.activation = (activation(),)  # to prevent from listing as module
         single_layer = False

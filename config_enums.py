@@ -40,11 +40,12 @@ class ActivationEnum(Enum):
 
 
 class EtaInitEnum(Enum):
-    UNIFORM_GLOROT = 'glorot'
-    ONES = 'ones'
-
+    GLOROT = 'glorot'
+    ONES = 1
+    TENTH = 0.1
 
 class OptimizerEnum(Enum):
     ADAM = torch.optim.Adam
     SGD = torch.optim.SGD
     COCOB = cocob_bp.COCOB_Backprop
+
