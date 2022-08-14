@@ -67,7 +67,7 @@ for run_no in range(NO_RUNS):
     if RUN_SCINOL:
         clean_model = copy.deepcopy(model).to(DEVICE)
         #scinol_model = get_scinol_model(MODEL_TYPE, no_inputs, no_outputs, HIDDEN_LAYERS, ACTIVATION.value, ETA_INIT).to(DEVICE)
-        scinol_model = adapt_to_scinol(clean_model)
+        scinol_model = adapt_to_scinol(clean_model, ETA_INIT.value, MOMENTUM)
         writer = SummaryWriter(log_dir=f'{WRITER_PREFIX}{SCINOL_PREFIX}Scinol_{str(run_no)}')
         train(dataloader_, scinol_model, writer, no_epochs=NO_EPOCHS, loss=loss, log_grads=LOG_GRADS_AND_WEIGHTS,
               log_scinol_params_=LOG_SCINOL_PARAMS, val_dataloader=valid_dataloader, log_to_pickle=LOSS_TO_PICKLE)
