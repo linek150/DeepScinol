@@ -43,6 +43,7 @@ class EtaInitEnum(Enum):
     GLOROT = 'glorot'
     ONES = 1
     TENTH = 0.1
+    TENS = 10
 
 class OptimizerEnum(Enum):
     ADAM = torch.optim.Adam
