@@ -10,8 +10,8 @@ DATASET_NAME: DatasetEnum = DatasetEnum.CIFAR10
 N_DIM: int = 100  # number of feature dimensions for generating ND_REG-ression
 DATASET_DIR: str = "./datasets"  # place where datasets will be downloaded
 # run options
-NO_RUNS: int = 1
-NO_EPOCHS: int = 60# number of iterations over all dataset
+NO_RUNS: int = 4
+NO_EPOCHS: int = 80# number of iterations over all dataset
 BATCH_SIZE = 128 # None = whole dataset or int
 RUN_OTHER_ALGORITHMS: bool = False
 RUN_SCINOL: bool = True
@@ -25,7 +25,7 @@ MODEL_TYPE: ModelEnum = ModelEnum.RESNET18_CIFAR10
 HIDDEN_LAYERS: Tuple = (1000, 1000, 1000)  # number of neurons in layers in MLP
 ACTIVATION: ActivationEnum = ActivationEnum.RELU  # activation after every layer, ignored if MODEL == ModelEnum.LINEAR
 # Scinol options
-ETA_INIT: EtaInitEnum = EtaInitEnum.GLOROT
+ETA_INIT: EtaInitEnum = EtaInitEnum.TENS
 MOMENTUM: bool = False
 # loss definition
 LOSS: LossEnum = LossEnum.DEFAULT  # loss function, None default dataset loss
