@@ -6,14 +6,14 @@ from typing import Tuple
 #reproducibility
 DETERMINISTIC_RES: bool = True
 # dataset options
-DATASET_NAME: DatasetEnum = DatasetEnum.CIFAR10
+DATASET_NAME: DatasetEnum = DatasetEnum.FLATTEN_MNIST
 N_DIM: int = 100  # number of feature dimensions for generating ND_REG-ression
 DATASET_DIR: str = "./datasets"  # place where datasets will be downloaded
 # run options
 NO_RUNS: int = 4
-NO_EPOCHS: int = 80# number of iterations over all dataset
+NO_EPOCHS: int = 18# number of iterations over all dataset
 BATCH_SIZE = 128 # None = whole dataset or int
-RUN_OTHER_ALGORITHMS: bool = False
+RUN_OTHER_ALGORITHMS: bool = True
 RUN_SCINOL: bool = True
 VALIDATION: bool = True
 LR_TUNING: bool = False # Set it to true to run algorithms specified in OTHER_ALGORITHMS with all LR tuple values
@@ -21,11 +21,11 @@ OTHER_ALGORITHMS: Tuple[Tuple, ...] = ((OptimizerEnum.ADAM, 0.001), (OptimizerEn
 # Learning rates to test
 LR: Tuple[float, ...] = (0.1, 0.01, 0.001)
 # model params
-MODEL_TYPE: ModelEnum = ModelEnum.RESNET18_CIFAR10
+MODEL_TYPE: ModelEnum = ModelEnum.MLP
 HIDDEN_LAYERS: Tuple = (1000, 1000, 1000)  # number of neurons in layers in MLP
 ACTIVATION: ActivationEnum = ActivationEnum.RELU  # activation after every layer, ignored if MODEL == ModelEnum.LINEAR
 # Scinol options
-ETA_INIT: EtaInitEnum = EtaInitEnum.TENS
+ETA_INIT: EtaInitEnum = EtaInitEnum.GLOROT
 MOMENTUM: bool = False
 # loss definition
 LOSS: LossEnum = LossEnum.DEFAULT  # loss function, None default dataset loss
